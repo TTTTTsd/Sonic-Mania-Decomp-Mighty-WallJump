@@ -13,7 +13,6 @@ Player_HandleAirMovement = Mod.GetPublicFunction(NULL, "Player_HandleAirMovement
 Player_HandleAirFriction  = Mod.GetPublicFunction(NULL, "Player_HandleAirFriction");
 Mod.RegisterStateHook(Player_JumpAbility_Mighty, Player_JumpAbility_Mighty_Hook, false);
 Mod.RegisterStateHook(Player_State_Air, Player_State_Air_Hook, false);
-Mod.RegisterStateHook(Player_WallStick_Mighty, Player_WallStick_Mighty, true);
 MOD_REGISTER_OBJECT_HOOK(Player);
 }
 
