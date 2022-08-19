@@ -452,6 +452,9 @@ extern ObjectPlayer *Player;
 // State helpers
 void (*Player_State_Air)(void);
 void (*Player_JumpAbility_Mighty)(void);
+void (*Player_HandleAirMovement)(void);
+void (*Player_HandleAirFriction)(void);
+void Player_State_Air_Hook(bool32 skip);
 void Player_JumpAbility_Mighty_Hook(bool32 skip);
 void Player_WallStick_Mighty(bool32 skip);
 

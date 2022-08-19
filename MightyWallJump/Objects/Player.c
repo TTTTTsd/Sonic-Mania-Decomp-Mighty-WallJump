@@ -10,6 +10,15 @@ Hitbox *Player_GetHitbox(EntityPlayer *player)
     return playerHitbox ? playerHitbox : &Player_FallbackHitbox;
 }
 
+void Player_State_Air_Hook(void)
+{
+    RSDK_THIS(Player);
+    if (self->jumpPress && self->timer >= 1 && self->animator.animationID == ANI_JUMP) {
+        self->timer = 0;
+        StateMachine_Run(self->stateAbility);
+    }
+}
+
 void Player_JumpAbility_Mighty_Hook(void)
 {
     RSDK_THIS(Player);
@@ -41,7 +50,7 @@ void Player_JumpAbility_Mighty_Hook(void)
         collidedLow      = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, -0xC0000, lowY, true);
         lowPos           = self->position.x;
     }
-    if (self->jumpPress && (collidedHigh || collidedLow) && (self->left||self->right))
+    if (self->jumpPress && (collidedHigh || collidedLow) && (self->left || self->right) && self->animator.animationID == ANI_HAMMERDROP)
         {
         if (highPos == lowPos) {
             RSDK.StopSfx(Player->sfxRelease);
@@ -50,8 +59,14 @@ void Player_JumpAbility_Mighty_Hook(void)
             self->velocity.x = 0;
             self->velocity.y = 0;
             self->timer      = 0;
-            self->direction  = self->direction != FLIP_X;
-            RSDK.SetSpriteAnimation(self->aniFrames, ANI_STICK, &self->animator, false, 0);
+            
+            if (self->isChibi) {
+                RSDK.SetSpriteAnimation(self->aniFrames, ANI_SKID, &self->animator, false, 0);
+            }
+            else {
+                self->direction = self->direction != FLIP_X;
+                RSDK.SetSpriteAnimation(self->aniFrames, ANI_STICK, &self->animator, false, 0);
+            }
             self->state      = Player_WallStick_Mighty;
         }
     }
@@ -72,7 +87,7 @@ void Player_WallStick_Mighty(void)
 
     bool32 collidedHigh = false, collidedLow = false;
     int32 highPos = 0, lowPos = 0;
-    if (self->direction == FLIP_X) {
+    if (self->direction == FLIP_X && !self->isChibi || self->direction == FLIP_NONE && self->isChibi) {
 
         collidedHigh = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, 0xC0000, highY, true);
         highPos      = self->position.x;
@@ -80,7 +95,7 @@ void Player_WallStick_Mighty(void)
         collidedLow = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, 0xC0000, lowY, true);
         lowPos      = self->position.x;
     }
-    if (self->direction == FLIP_NONE) {
+    if (self->direction == FLIP_NONE && !self->isChibi || self->direction == FLIP_X && self->isChibi) {
 
         collidedHigh = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, -0xC0000, highY, true);
         highPos      = self->position.x;
@@ -94,14 +109,16 @@ void Player_WallStick_Mighty(void)
            }
     if (self->timer >= 32 || !collidedHigh) {
         RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
-        self->applyJumpCap     = false;
-        self->jumpAbilityState = 1;
+        self->applyJumpCap     = true;
+        self->jumpAbilityState = 0;
+        self->direction        = self->direction != FLIP_X;
         self->state            = Player_State_Air;
     }
     if (!self->jumpHold && self->up) {
         RSDK.PlaySfx(Player->sfxJump, false, 255);
         self->applyJumpCap     = false;
         self->jumpAbilityState = 1;
+        self->timer           = 1;
         self->velocity.y       = -0x80000;
         self->direction        = self->direction != FLIP_X;
         RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
@@ -116,7 +133,8 @@ void Player_WallStick_Mighty(void)
         RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
         self->state = Player_State_Air;
     }
-    if (self->direction == FLIP_NONE && !self->down && !self->up) {
+    if (self->direction == FLIP_NONE && !self->down && !self->up && !self->isChibi
+        || self->direction == FLIP_X && !self->down && !self->up && self->isChibi) {
         if (!self->jumpHold && self->left) {
             RSDK.PlaySfx(Player->sfxJump, false, 255);
             self->applyJumpCap     = false;
@@ -138,11 +156,13 @@ void Player_WallStick_Mighty(void)
             self->state = Player_State_Air;
         }
     }
- if (self->direction == FLIP_X && !self->down && !self->up) {
+    if (self->direction == FLIP_X && !self->down && !self->up && !self->isChibi
+        || self->direction == FLIP_NONE && !self->down && !self->up && self->isChibi) {
             if (!self->jumpHold && self->right) {
                 RSDK.PlaySfx(Player->sfxJump, false, 255);
                 self->applyJumpCap     = false;
                 self->jumpAbilityState = 1;
+                int32 UpWallTime       = 0;
                 self->direction        = self->direction != FLIP_NONE;
                 self->velocity.x       = -0x80000;
                 self->velocity.y       = -0x50000;
@@ -153,6 +173,7 @@ void Player_WallStick_Mighty(void)
                 RSDK.PlaySfx(Player->sfxJump, false, 255);
                 self->applyJumpCap     = false;
                 self->jumpAbilityState = 1;
+                int32 UpWallTime       = 0;
                 self->direction        = self->direction != FLIP_NONE;
                 self->velocity.x       = -0x80000;
                 self->velocity.y       = -0x15000;
