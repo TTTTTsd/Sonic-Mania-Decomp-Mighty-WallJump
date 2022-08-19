@@ -34,29 +34,29 @@ void Player_JumpAbility_Mighty_Hook(void)
 
     bool32 collidedHigh = false, collidedLow = false;
     int32 highPos = 0, lowPos = 0;
-    if (self->right) {
+    if (self->right && self->animator.animationID == ANI_HAMMERDROP) {
 
-        collidedHigh = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, 0xC0000, highY, true);
+        collidedHigh = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, 0xA2000, highY, true);
         highPos      = self->position.x;
 
-        collidedLow      = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, 0xC0000, lowY, true);
-        lowPos           = self->position.x;
+        collidedLow = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, 0xA2000, lowY, true);
+        lowPos      = self->position.x;
     }
-    if (self->left) {
+    if (self->left && self->animator.animationID == ANI_HAMMERDROP) {
 
-        collidedHigh = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, -0xC0000, highY, true);
+        collidedHigh = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, -0xA2000, highY, true);
         highPos      = self->position.x;
 
-        collidedLow      = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, -0xC0000, lowY, true);
-        lowPos           = self->position.x;
+        collidedLow = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, -0xA2000, lowY, true);
+        lowPos      = self->position.x;
     }
-    if (self->jumpPress && (collidedHigh || collidedLow) && (self->left || self->right) && self->animator.animationID == ANI_HAMMERDROP)
+    if (self->jumpPress && (collidedHigh || collidedLow) && (self->left || self->right))
         {
-        if (highPos == lowPos) {
             RSDK.StopSfx(Player->sfxRelease);
             RSDK.StopSfx(Player->sfxMightyDrill);
             RSDK.PlaySfx(Player->sfxGrab, false, 255);
             self->velocity.x = 0;
+            
             self->velocity.y = 0;
             self->timer      = 0;
             
@@ -65,17 +65,25 @@ void Player_JumpAbility_Mighty_Hook(void)
             }
             else {
                 self->direction = self->direction != FLIP_X;
+                if (!self->isChibi && self->direction == FLIP_X) {
+                }
                 RSDK.SetSpriteAnimation(self->aniFrames, ANI_STICK, &self->animator, false, 0);
             }
             self->state      = Player_WallStick_Mighty;
         }
     }
-}
 
 void Player_WallStick_Mighty(void)
 {
     RSDK_THIS(Player);
-    int32 highY = 0, lowY = 0;
+    Hitbox *hitbox = Player_GetHitbox(self);
+    int32 storeX   = self->position.x;
+
+    int32 highY = 0;
+    int32 lowY  = 0;
+
+    int32 roofX = 0;
+    int32 roofY = 0;
     if (self->isChibi) {
         highY = -0x10000;
         lowY  = 0x30000;
@@ -86,23 +94,20 @@ void Player_WallStick_Mighty(void)
     }
 
     bool32 collidedHigh = false, collidedLow = false;
-    int32 highPos = 0, lowPos = 0;
-    if (self->direction == FLIP_X && !self->isChibi || self->direction == FLIP_NONE && self->isChibi) {
+        if (!self->direction && !self->isChibi || self->direction && self->isChibi) {
+            collidedHigh = RSDK.ObjectTileGrip(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, hitbox->left << 16, highY, 8);
+            int32 highX  = self->position.x;
 
-        collidedHigh = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, 0xC0000, highY, true);
-        highPos      = self->position.x;
+            self->position.x = storeX;
+            collidedLow      = RSDK.ObjectTileGrip(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, hitbox->left << 16, lowY, 8);
+        }
+        else {
+            collidedHigh = RSDK.ObjectTileGrip(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, hitbox->right << 16, highY, 8);
+            int32 highY  = self->position.x;
 
-        collidedLow = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, 0xC0000, lowY, true);
-        lowPos      = self->position.x;
-    }
-    if (self->direction == FLIP_NONE && !self->isChibi || self->direction == FLIP_X && self->isChibi) {
-
-        collidedHigh = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, -0xC0000, highY, true);
-        highPos      = self->position.x;
-
-        collidedLow = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, -0xC0000, lowY, true);
-        lowPos      = self->position.x;
-    }
+            self->position.x = storeX;
+            collidedLow      = RSDK.ObjectTileGrip(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, hitbox->right << 16, lowY, 8);
+        }
     self->velocity.y = 0x3000;
     if (self->onGround) {
         self->state = Player_State_Ground;
