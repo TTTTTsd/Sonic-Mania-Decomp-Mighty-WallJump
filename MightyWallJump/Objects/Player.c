@@ -1,6 +1,5 @@
 #include "Player.h"
 #include "GameAPI/Game.h"
-
 ObjectPlayer *Player;
 Hitbox Player_FallbackHitbox = { -10, -20, 10, 20 };
 // Collision
@@ -13,8 +12,7 @@ Hitbox *Player_GetHitbox(EntityPlayer *player)
 void Player_State_Air_Hook(void)
 {
     RSDK_THIS(Player);
-    if (self->jumpPress && self->timer >= 1 && self->animator.animationID == ANI_JUMP) {
-        self->timer = 0;
+    if (self->jumpPress && self->timer>= 1 && self->animator.animationID == ANI_JUMP) {
         StateMachine_Run(self->stateAbility);
     }
 }
@@ -65,8 +63,6 @@ void Player_JumpAbility_Mighty_Hook(void)
             }
             else {
                 self->direction = self->direction != FLIP_X;
-                if (!self->isChibi && self->direction == FLIP_X) {
-                }
                 RSDK.SetSpriteAnimation(self->aniFrames, ANI_STICK, &self->animator, false, 0);
             }
             self->state      = Player_WallStick_Mighty;
@@ -116,75 +112,115 @@ void Player_WallStick_Mighty(void)
         RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
         self->applyJumpCap     = true;
         self->jumpAbilityState = 0;
-        self->direction        = self->direction != FLIP_X;
+        self->direction        = self->direction != FLIP_NONE;
         self->state            = Player_State_Air;
     }
-    if (!self->jumpHold && self->up) {
-        RSDK.PlaySfx(Player->sfxJump, false, 255);
-        self->applyJumpCap     = false;
-        self->jumpAbilityState = 1;
-        self->timer           = 1;
-        self->velocity.y       = -0x80000;
-        self->direction        = self->direction != FLIP_X;
-        RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
-        self->state = Player_State_Air;
-    }
-    if (!self->jumpHold && self->down) {
-        RSDK.PlaySfx(Player->sfxJump, false, 255);
-        self->applyJumpCap     = false;
-        self->jumpAbilityState = 1;
-        self->velocity.y       = 0x80000;
-        self->direction        = self->direction != FLIP_X;
-        RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
-        self->state = Player_State_Air;
-    }
-    if (self->direction == FLIP_NONE && !self->down && !self->up && !self->isChibi
-        || self->direction == FLIP_X && !self->down && !self->up && self->isChibi) {
-        if (!self->jumpHold && self->left) {
-            RSDK.PlaySfx(Player->sfxJump, false, 255);
-            self->applyJumpCap     = false;
-            self->jumpAbilityState = 1;
-            self->direction        = self->direction != FLIP_NONE;
-            self->velocity.x       = 0x80000;
-            self->velocity.y       = -0x50000;
-            RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
-            self->state = Player_State_Air;
-        }
-        if (!self->jumpHold && !self->left) {
-            RSDK.PlaySfx(Player->sfxJump, false, 255);
-            self->applyJumpCap     = false;
-            self->jumpAbilityState = 1;
-            self->direction        = self->direction != FLIP_NONE;
-            self->velocity.x       = 0x80000;
-            self->velocity.y       = -0x15000;
-            RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
-            self->state = Player_State_Air;
-        }
-    }
-    if (self->direction == FLIP_X && !self->down && !self->up && !self->isChibi
-        || self->direction == FLIP_NONE && !self->down && !self->up && self->isChibi) {
-            if (!self->jumpHold && self->right) {
+    if (!self->jumpHold) {         /// HERE WE GO
+        if (self->direction == FLIP_NONE && !self->isChibi
+            || self->direction == FLIP_X && self->isChibi) {
+            if (self->down & !self->left & !self->right) {
                 RSDK.PlaySfx(Player->sfxJump, false, 255);
                 self->applyJumpCap     = false;
                 self->jumpAbilityState = 1;
-                int32 UpWallTime       = 0;
                 self->direction        = self->direction != FLIP_NONE;
-                self->velocity.x       = -0x80000;
-                self->velocity.y       = -0x50000;
+                self->velocity.y       = 0x80000;
+                self->velocity.x       = 0;
                 RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
                 self->state = Player_State_Air;
             }
-            if (!self->jumpHold && !self->right) {
+            if (self->down && self->right) {
                 RSDK.PlaySfx(Player->sfxJump, false, 255);
                 self->applyJumpCap     = false;
                 self->jumpAbilityState = 1;
-                int32 UpWallTime       = 0;
                 self->direction        = self->direction != FLIP_NONE;
-                self->velocity.x       = -0x80000;
-                self->velocity.y       = -0x15000;
+                self->velocity.x       = 0x70000;
+                self->velocity.y       = 0x50000;
+                RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
+                self->state = Player_State_Air;
+            }
+            if (!self->left && !self->down) {
+                RSDK.PlaySfx(Player->sfxJump, false, 255);
+                self->applyJumpCap     = false;
+                self->jumpAbilityState = 1;
+                self->direction        = self->direction != FLIP_NONE;
+                self->velocity.x       = 0x70000;
+                RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
+                self->state = Player_State_Air;
+            }
+            if (self->left || self->up && self->right) {
+                RSDK.PlaySfx(Player->sfxJump, false, 255);
+                self->applyJumpCap     = false;
+                self->jumpAbilityState = 1;
+                self->direction        = self->direction != FLIP_NONE;
+                self->velocity.x       = 0x70000;
+                self->velocity.y       = -0x80000;
+                RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
+                self->state = Player_State_Air;
+            }
+            if (self->up && !self->right) {
+                RSDK.PlaySfx(Player->sfxJump, false, 255);
+                self->applyJumpCap     = false;
+                self->jumpAbilityState = 1;
+                self->timer            = 1;
+                self->direction        = self->direction != FLIP_NONE;
+                self->velocity.y       = -0x80000;
+                self->velocity.x       = 0;
                 RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
                 self->state = Player_State_Air;
             }
         }
+        if (self->direction == FLIP_X && !self->isChibi || self->direction == FLIP_NONE && self->isChibi) {
+            if (self->down & !self->left & !self->right) {
+                RSDK.PlaySfx(Player->sfxJump, false, 255);
+                self->applyJumpCap     = false;
+                self->jumpAbilityState = 1;
+                self->direction        = self->direction != FLIP_NONE;
+                self->velocity.y       = 0x80000;
+                self->velocity.x       = 0;
+                RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
+                self->state = Player_State_Air;
+            }
+            if (self->down && self->left) {
+                RSDK.PlaySfx(Player->sfxJump, false, 255);
+                self->applyJumpCap     = false;
+                self->jumpAbilityState = 1;
+                self->direction        = self->direction != FLIP_NONE;
+                self->velocity.x       = -0x70000;
+                self->velocity.y       = 0x50000;
+                RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
+                self->state = Player_State_Air;
+            }
+            if (!self->right && !self->down) {
+                RSDK.PlaySfx(Player->sfxJump, false, 255);
+                self->applyJumpCap     = false;
+                self->jumpAbilityState = 1;
+                self->direction        = self->direction != FLIP_NONE;
+                self->velocity.x       = -0x70000;
+                RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
+                self->state = Player_State_Air;
+            }
+            if (self->right || self->up && self->left) {
+                RSDK.PlaySfx(Player->sfxJump, false, 255);
+                self->applyJumpCap     = false;
+                self->jumpAbilityState = 1;
+                self->direction        = self->direction != FLIP_NONE;
+                self->velocity.x       = -0x70000;
+                self->velocity.y       = -0x80000;
+                RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
+                self->state = Player_State_Air;
+            }
+            if (self->up && !self->left) {
+                RSDK.PlaySfx(Player->sfxJump, false, 255);
+                self->applyJumpCap     = false;
+                self->jumpAbilityState = 1;
+                self->timer            = 1;
+                self->direction        = self->direction != FLIP_NONE;
+                self->velocity.y       = -0x80000;
+                self->velocity.x       = 0;
+                RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
+                self->state = Player_State_Air;
+            }
+        }
+    } 
     self->timer++;
     }
