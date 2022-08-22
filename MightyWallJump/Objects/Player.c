@@ -1,5 +1,7 @@
 #include "Player.h"
 #include "GameAPI/Game.h"
+#include "../ModConfig.h"
+
 ObjectPlayer *Player;
 Hitbox Player_FallbackHitbox = { -10, -20, 10, 20 };
 // Collision
@@ -12,7 +14,7 @@ Hitbox *Player_GetHitbox(EntityPlayer *player)
 void Player_State_Air_Hook(void)
 {
     RSDK_THIS(Player);
-    if (self->jumpPress && self->timer>= 1 && self->animator.animationID == ANI_JUMP) {
+    if ((ControllerInfo[self->controllerID].keyA.press && config.ButtonOption || self->jumpPress && !config.ButtonOption) && self->timer >= 1 && self->animator.animationID == ANI_JUMP) {
         StateMachine_Run(self->stateAbility);
     }
 }
@@ -20,6 +22,7 @@ void Player_State_Air_Hook(void)
 void Player_JumpAbility_Mighty_Hook(void)
 {
     RSDK_THIS(Player);
+    Hitbox *hitbox = Player_GetHitbox(self);
     int32 highY = 0, lowY = 0;
     if (self->isChibi) {
         highY = -0x10000;
@@ -34,27 +37,28 @@ void Player_JumpAbility_Mighty_Hook(void)
     int32 highPos = 0, lowPos = 0;
     if (self->right && self->animator.animationID == ANI_HAMMERDROP) {
 
-        collidedHigh = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, 0xA2000, highY, true);
+        collidedHigh = RSDK.ObjectTileGrip(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, hitbox->right << 16, highY, 8);
         highPos      = self->position.x;
 
-        collidedLow = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, 0xA2000, lowY, true);
+        collidedLow = RSDK.ObjectTileGrip(self, self->collisionLayers, CMODE_LWALL, self->collisionPlane, hitbox->right << 16, lowY, 8);
         lowPos      = self->position.x;
     }
     if (self->left && self->animator.animationID == ANI_HAMMERDROP) {
 
-        collidedHigh = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, -0xA2000, highY, true);
+        collidedHigh = RSDK.ObjectTileGrip(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, hitbox->left << 16, highY, 8);
         highPos      = self->position.x;
 
-        collidedLow = RSDK.ObjectTileCollision(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, -0xA2000, lowY, true);
+        collidedLow = RSDK.ObjectTileGrip(self, self->collisionLayers, CMODE_RWALL, self->collisionPlane, hitbox->left << 16, lowY, 8);
         lowPos      = self->position.x;
     }
-    if (self->jumpPress && (collidedHigh || collidedLow) && (self->left || self->right))
+    if ((ControllerInfo[self->controllerID].keyA.press && config.ButtonOption || self->jumpPress && !config.ButtonOption)
+        && (collidedHigh || collidedLow) && (self->left || self->right))
         {
             RSDK.StopSfx(Player->sfxRelease);
             RSDK.StopSfx(Player->sfxMightyDrill);
             RSDK.PlaySfx(Player->sfxGrab, false, 255);
             self->velocity.x = 0;
-            
+            self->rotation   = 0;
             self->velocity.y = 0;
             self->timer      = 0;
             
@@ -144,6 +148,7 @@ void Player_WallStick_Mighty(void)
                 self->jumpAbilityState = 1;
                 self->direction        = self->direction != FLIP_NONE;
                 self->velocity.x       = 0x70000;
+                self->velocity.y       = -0x5000;
                 RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
                 self->state = Player_State_Air;
             }
@@ -196,6 +201,7 @@ void Player_WallStick_Mighty(void)
                 self->jumpAbilityState = 1;
                 self->direction        = self->direction != FLIP_NONE;
                 self->velocity.x       = -0x70000;
+                self->velocity.y       = -0x5000;
                 RSDK.SetSpriteAnimation(self->aniFrames, ANI_JUMP, &self->animator, false, 0);
                 self->state = Player_State_Air;
             }

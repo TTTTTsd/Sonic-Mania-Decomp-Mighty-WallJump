@@ -1,6 +1,10 @@
 #include "../GameAPI/C/GameAPI/Game.h"
 #include "Objects/Player.h"
 
+#include "ModConfig.h"
+
+ModConfig config;
+
 #if RETRO_USE_MOD_LOADER
 DLLExport bool32 LinkModLogic(EngineInfo *info, const char *id);
 #endif
@@ -14,6 +18,10 @@ Player_HandleAirFriction  = Mod.GetPublicFunction(NULL, "Player_HandleAirFrictio
 Mod.RegisterStateHook(Player_JumpAbility_Mighty, Player_JumpAbility_Mighty_Hook, false);
 Mod.RegisterStateHook(Player_State_Air, Player_State_Air_Hook, false);
 MOD_REGISTER_OBJECT_HOOK(Player);
+// Setup Config
+config.ButtonOption = Mod.GetSettingsBool("", "Config:ButtonOption", false);
+Mod.SetSettingsBool("Config:ButtonOption", config.ButtonOption);
+Mod.SaveSettings();
 }
 
 #if RETRO_USE_MOD_LOADER
